@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>PC Room availability</title>
+    <link rel="stylesheet" type="text/css" href="https://static.kent.ac.uk/pantheon/styles/student/studying/pcrooms/Daedalusbrowser.css?20170119155436">
+    <link rel="stylesheet" type="text/css" href="https://www.kent.ac.uk/student/studying/pcrooms/freepc/freepc.css">
+  </head>
+  <body>
+    <h1>PC Room availability</h1>
+    <hr>
+    <div id="availability-wrapper">
+      Loading...
+    </div>
+    <script id="building-availability" type="text/x-handlebars-template">
+      <div class="pc_building">
+        <div class="line"></div>
+        <div class="building_totals"><strong>{{name}}</strong></div>
+        {{{rooms}}}
+      </div>
+    </script>
+    <script id="room-availability" type="text/x-handlebars-template">
+      <div class="pc_room_info">
+        <div class="pc_room_info">
+          <div class="total">{{free}}</div>
+          <div class="name">{{name}}</div>
+          <div class="count"> {{free}} / {{total}} PCs free </div>
+        </div>
+      </div>
+    </script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.0.6/handlebars.min.js"></script>
+    <script type="text/javascript">
+      var hash = location.hash.replace(/#/, "");
+      var campus = (hash == "canterbury" || hash == "medway") ? "/"+hash : "";
+      var wrapper = document.querySelector('#availability-wrapper');
+      var buildingSource = document.querySelector("#building-availability").innerHTML;
+      var buildingTemplate = Handlebars.compile(buildingSource);
+      var roomSource = document.querySelector("#room-availability").innerHTML;
+      var roomTemplate = Handlebars.compile(roomSource);
+      fetch('https://api.kent.ac.uk/api/v1/pcs'+campus+'/free')
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(json) {
+        json = json.reduce(function(obj, val) {
+          if (!(val.group in obj)) {
+            obj[val.group] = [];
+          }
+          obj[val.group].push(val);
+          return obj;
+        }, {});
+        wrapper.innerHTML = "";
+        render(json);
+      });
+
+      function render(json) {
+        for (var building in json) {
+          var rooms = "";
+          for (var i = 0; i < json[building].length; i++) {
+            rooms += roomTemplate(json[building][i]);
+          }
+          wrapper.innerHTML += buildingTemplate({name: building, rooms: rooms});
+        }
+      }
+    </script>
+  </body>
+</html>
